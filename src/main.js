@@ -25,10 +25,6 @@ async function main() {
   console.log("number of pairs in contract: ", positions);
 
 
-  // console.log(process.env.PRIVATE_KEY_1);
-
-
-
   
 }
 
