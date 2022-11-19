@@ -17,14 +17,15 @@ async function main() {
   const core = new ethers.Contract(OptionMakerAddress, coreABI, provider);
   const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, provider);
 
-  // const account = await ethers.getSigners(process.env.PRIVATE_KEY_1);
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
+  console.log(signer);
 
   const positions = await optionstorage.numOfPairs();
 
   console.log("number of pairs in contract: ", positions);
 
 
-  console.log(process.env.PRIVATE_KEY_1);
+  // console.log(process.env.PRIVATE_KEY_1);
 
 
 
