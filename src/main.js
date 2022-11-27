@@ -46,26 +46,18 @@ async function main() {
   await getUsers(numberOfPairs);
   await savePositions(numberOfPairs);
 
-  await printPositions();
+  arrangePositions();
 
+  printPositions();
 }
 
 
 async function getUsers(numberOfPairs) {
-
   for (i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
     const allUsers = await optionstorage.getUserAddressesInPair(pair);
     Pairs[i].users = [...new Set(allUsers)];
-    
-    /*     
-    console.log("Users\n")
-    console.log(Pairs[0].users);
-
-    console.log("Pair Address:\n")
-    console.log(Pairs[0].address);
-    */
   }
 }
 
@@ -136,12 +128,27 @@ async function savePositions(numberOfPairs) {
   }  
 }
 
-
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
   interval = 86400 / perDay;
   nextTimeStamp = lastHedgeTimeStamp + interval;
 
   return nextTimeStamp;
+}
+
+
+function arrangePositions() {
+  Positions.sort(compare);
+}
+
+
+function compare(a, b) {
+  if ( a.nextHedgeTimeStamp < b.nextHedgeTimeStamp ){
+    return -1;
+  }
+  if ( a.nextHedgeTimeStamp > b.nextHedgeTimeStamp ){
+    return 1;
+  }
+  return 0;
 }
 
 // @dev this is a test function
@@ -150,8 +157,6 @@ function printPositions() {
     console.log(Positions[i]);
   }
 }
-
-
 
 
 main().then(() => process.exit(0)).catch((error) => {
