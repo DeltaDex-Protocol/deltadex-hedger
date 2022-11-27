@@ -7,27 +7,29 @@ require('dotenv').config();
 const storageABI = require('../abi/OptionStorage.json');
 
 // const OptionMakerAddress = '0x235E4A333CdD327D68De53d8457C4032EeEBCBF6';
-const OptionStorageAddress = '0x1D006bf51E1C032F4f754EE38786450ba0f78e29';
+const OptionStorageAddress = '0x232A4710D1A21AfEfB021654C5B48092e5faB67F';
+
+const RPC = 'http://localhost:8545';
+const provider = new ethers.providers.JsonRpcProvider(RPC);
+
+// const core = new ethers.Contract(OptionMakerAddress, coreABI, provider);
+const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, provider);
+
+// const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
+// console.log(signer);
+
+
+const Pairs = [];
+
+const Pair = {
+  address: null,
+  users: []
+}
+
 
 async function main() {
-  const RPC = 'http://localhost:8545';
-  const provider = new ethers.providers.JsonRpcProvider(RPC);
-
-  // const core = new ethers.Contract(OptionMakerAddress, coreABI, provider);
-  const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, provider);
-
-  // const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
-  // console.log(signer);
-
-  const numberOfPairs = await optionstorage.numOfPairs();
+  let numberOfPairs = await optionstorage.numOfPairs();
   console.log('number of pairs in contract: ', numberOfPairs);
-
-  const Pairs = [];
-
-  const Pair = {
-    address: null,
-    users: []
-  }
 
   for (i = 0; i < numberOfPairs; i++) {
     const _pair = Object.create(Pair);
@@ -52,31 +54,73 @@ async function main() {
 
   }
 
-
-
-
-/* 
-  // get users in pair
-
-  for (i = 0; i < numberOfPairs; i++) {
-    const pair = pairAddresses[i];
-    const numberOfUsers = await optionstorage.getNumberOfUsersInPair(pair);
-
-    
-
-  }
-
-  
-
-  const numberOfUsers = await optionstorage.getNumberOfUsersInPair(pair);
-
-  const userAddresses = [];
-  for (i = 0; i < numberOfUsers)
-
- */
-
+  await savePositions(numberOfPairs);
 
 }
+
+
+async function savePositions(numberOfPairs) {
+
+  /* 
+    IMPORTANT DATA FOR HEDGING
+    uint amount;
+    uint expiry;
+    uint fees;
+    uint perDay;
+    uint hedgeFee;
+    uint lastHedgeTimeStamp;
+  */
+  
+  const Positions = [];
+
+  const Position = {
+    amount: null,
+    expiry: null,
+    fees: null,
+    perDay: null,
+    hedgeFee: null,
+    lastHedgeTimeStamp: null
+  }
+
+  // Getting all positions of all users
+  for (i = 0; i < numberOfPairs; i++) {
+
+    let pair = Pairs[i].address;
+
+    let users = Pairs[i].users;
+
+    for (j = 0; j < users.length; j++) {
+
+      let user = users[j];
+
+      let numberOfUserPositions = await optionstorage.userIDlength(user);
+
+      for (ID = 0; ID < numberOfUserPositions; ID++) {
+
+        let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
+
+        if (positionData.amount == 0) {
+          positionData = await optionstorage.JDM_PositionParams(pair, user, ID);
+        }
+
+        const position = Object.create(Position);
+
+        position.amount = positionData[0];
+        position.expiry = positionData[1];
+        position.fees = positionData[2];
+        position.perDay = positionData[3];
+        position.hedgeFee = positionData[4];
+        position.lastHedgeTimeStamp = positionData[5];
+
+        Positions.push(position);
+      }
+    }
+  }  
+}
+
+
+
+
 
 main().then(() => process.exit(0)).catch((error) => {
   console.error(error);
