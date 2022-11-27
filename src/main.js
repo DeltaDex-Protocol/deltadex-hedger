@@ -7,16 +7,18 @@ require('dotenv').config();
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x235E4A333CdD327D68De53d8457C4032EeEBCBF6';
+const OptionMakerAddress = '0xd7a89AEa304A491Ef4B5e74928370059fa53D8C6';
 const OptionStorageAddress = '0x232A4710D1A21AfEfB021654C5B48092e5faB67F';
 
 const RPC = 'http://localhost:8545';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 
-const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, provider);
-const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, provider);
-
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
+
+const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
+const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
+
+
 // console.log(signer);
 
 
@@ -31,6 +33,7 @@ const Positions = [];
 
 const Position = {
   pairAddress: null,
+  userAddress: null,
   type: null,
   ID: null,
   amount: null,
@@ -54,18 +57,17 @@ async function main() {
   
     arrangePositions();
 
-    checkIfHedgeAvailable();
+    // checkIfHedgeAvailable();
 
     hedgePosition(0);
 
     // printPositions();
-    output();
+    // output();
 
   
     await sleep(60000);
   }
 }
-
 
 
 async function checkIfHedgeAvailable() {
@@ -84,12 +86,17 @@ async function checkIfHedgeAvailable() {
 
 
 async function hedgePosition(index) {
+  console.log("here");
 
   let position = Positions[index];
 
-  const pair = position.pair;
-  const user = position.user;
+  const pair = position.pairAddress;
+  const user = position.userAddress;
   const ID = position.ID;
+
+  console.log(pair, user, ID);
+
+  console.log(Positions[0]);
 
   if (position.type == "BS") {
     await optionmaker.BS_HEDGE(pair, user, ID);
@@ -98,6 +105,7 @@ async function hedgePosition(index) {
     await optionmaker.JDM_HEDGE(pair, user, ID);
   }
 
+  console.log("here 2");
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
   
 }
@@ -168,6 +176,7 @@ async function savePositions(numberOfPairs) {
         const position = Object.create(Position);
 
         position.pairAddress = pair;
+        position.userAddress = user;
         position.type = type;
         position.ID = ID;
         position.amount = positionData[0];
