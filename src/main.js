@@ -1,6 +1,7 @@
 // require("@nomiclabs/hardhat-waffle");
 // const {parseUnits} = require("ethers/lib/utils");
 const {ethers} = require('ethers');
+
 require('dotenv').config();
 
 // const coreABI = require('../abi/OptionMaker.json');
@@ -26,8 +27,50 @@ const Pair = {
   users: []
 }
 
+const Positions = [];
+
+const Position = {
+  amount: null,
+  expiry: null,
+  fees: null,
+  perDay: null,
+  hedgeFee: null,
+  lastHedgeTimeStamp: null,
+  nextHedgeTimeStamp: null
+}
+
 
 async function main() {
+  let numberOfPairs = await getPairs();
+
+  await getUsers(numberOfPairs);
+  await savePositions(numberOfPairs);
+
+  await printPositions();
+
+}
+
+
+async function getUsers(numberOfPairs) {
+
+  for (i = 0; i < numberOfPairs; i++) {
+    const pair = Pairs[i].address;
+
+    const allUsers = await optionstorage.getUserAddressesInPair(pair);
+    Pairs[i].users = [...new Set(allUsers)];
+    
+    /*     
+    console.log("Users\n")
+    console.log(Pairs[0].users);
+
+    console.log("Pair Address:\n")
+    console.log(Pairs[0].address);
+    */
+  }
+}
+
+
+async function getPairs() {
   let numberOfPairs = await optionstorage.numOfPairs();
   console.log('number of pairs in contract: ', numberOfPairs);
 
@@ -40,27 +83,11 @@ async function main() {
     console.log(Pairs);
   }
 
-  for (i = 0; i < numberOfPairs; i++) {
-    const pair = Pairs[i].address;
-
-    const allUsers = await optionstorage.getUserAddressesInPair(pair);
-    Pairs[i].users = [...new Set(allUsers)];
-    
-    console.log("Users\n")
-    console.log(Pairs[0].users);
-
-    console.log("Pair Address:\n")
-    console.log(Pairs[0].address);
-
-  }
-
-  await savePositions(numberOfPairs);
-
+  return numberOfPairs;
 }
 
 
 async function savePositions(numberOfPairs) {
-
   /* 
     IMPORTANT DATA FOR HEDGING
     uint amount;
@@ -70,17 +97,6 @@ async function savePositions(numberOfPairs) {
     uint hedgeFee;
     uint lastHedgeTimeStamp;
   */
-  
-  const Positions = [];
-
-  const Position = {
-    amount: null,
-    expiry: null,
-    fees: null,
-    perDay: null,
-    hedgeFee: null,
-    lastHedgeTimeStamp: null
-  }
 
   // Getting all positions of all users
   for (i = 0; i < numberOfPairs; i++) {
@@ -108,9 +124,11 @@ async function savePositions(numberOfPairs) {
         position.amount = positionData[0];
         position.expiry = positionData[1];
         position.fees = positionData[2];
-        position.perDay = positionData[3];
-        position.hedgeFee = positionData[4];
-        position.lastHedgeTimeStamp = positionData[5];
+        position.perDay = positionData[3].toNumber();
+        position.hedgeFee = positionData[4]
+        position.lastHedgeTimeStamp = positionData[5].toNumber();
+
+        position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
 
         Positions.push(position);
       }
@@ -118,6 +136,20 @@ async function savePositions(numberOfPairs) {
   }  
 }
 
+
+function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
+  interval = 86400 / perDay;
+  nextTimeStamp = lastHedgeTimeStamp + interval;
+
+  return nextTimeStamp;
+}
+
+// @dev this is a test function
+function printPositions() {
+  for (i = 0; i < Positions.length; i++) {
+    console.log(Positions[i]);
+  }
+}
 
 
 
