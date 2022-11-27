@@ -41,14 +41,20 @@ const Position = {
 
 
 async function main() {
-  let numberOfPairs = await getPairs();
 
-  await getUsers(numberOfPairs);
-  await savePositions(numberOfPairs);
+  while(true) {
 
-  arrangePositions();
+    let numberOfPairs = await getPairs();
 
-  printPositions();
+    await getUsers(numberOfPairs);
+    await savePositions(numberOfPairs);
+  
+    arrangePositions();
+    // printPositions();
+    output();
+  
+    await sleep(30000);
+  }
 }
 
 
@@ -64,7 +70,6 @@ async function getUsers(numberOfPairs) {
 
 async function getPairs() {
   let numberOfPairs = await optionstorage.numOfPairs();
-  console.log('number of pairs in contract: ', numberOfPairs);
 
   for (i = 0; i < numberOfPairs; i++) {
     const _pair = Object.create(Pair);
@@ -72,7 +77,6 @@ async function getPairs() {
     _pair.address = await optionstorage.returnPairAddress(i);
 
     Pairs.push(_pair);
-    console.log(Pairs);
   }
 
   return numberOfPairs;
@@ -151,6 +155,7 @@ function compare(a, b) {
   return 0;
 }
 
+
 // @dev this is a test function
 function printPositions() {
   for (i = 0; i < Positions.length; i++) {
@@ -158,6 +163,14 @@ function printPositions() {
   }
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function output() {
+  console.log('Number of pairs in contract: ', Pairs.length.toString());
+  console.log('Number of open positions: ', Positions.length.toString());
+}
 
 main().then(() => process.exit(0)).catch((error) => {
   console.error(error);
