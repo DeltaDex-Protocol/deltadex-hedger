@@ -18,15 +18,11 @@ const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
 
-
-// console.log(signer);
-
-
 const Pairs = [];
 
 const Pair = {
   address: null,
-  users: []
+  users: [],
 }
 
 const Positions = [];
@@ -47,9 +43,7 @@ const Position = {
 
 
 async function main() {
-
   while(true) {
-
     let numberOfPairs = await getPairs();
 
     await getUsers(numberOfPairs);
@@ -57,19 +51,18 @@ async function main() {
   
     arrangePositions();
 
-    // checkIfHedgeAvailable();
+    checkIfHedgeAvailable();
 
-    hedgePosition(0);
-
+    // hedgePosition(0);
     // printPositions();
-    // output();
 
-  
+    output();
+
     await sleep(60000);
   }
 }
 
-
+// @dev this will be slow if there are multiple positions to hedge in a single block...
 async function checkIfHedgeAvailable() {
   timestamp = Date.now();
 
@@ -80,13 +73,12 @@ async function checkIfHedgeAvailable() {
     else {
       // pass
     }
-
   }
 } 
 
 
 async function hedgePosition(index) {
-  console.log("here");
+  console.log("Hedging Position");
 
   let position = Positions[index];
 
@@ -94,19 +86,15 @@ async function hedgePosition(index) {
   const user = position.userAddress;
   const ID = position.ID;
 
-  console.log(pair, user, ID);
-
-  console.log(Positions[0]);
-
   if (position.type == "BS") {
     await optionmaker.BS_HEDGE(pair, user, ID);
   }
   else {
     await optionmaker.JDM_HEDGE(pair, user, ID);
   }
-
-  console.log("here 2");
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
+
+  console.log("Hedging Position Sucess");
   
 }
 
