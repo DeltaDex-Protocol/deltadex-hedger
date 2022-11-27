@@ -41,14 +41,14 @@ async function main() {
   for (i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
-    Pairs[i].users = await optionstorage.getUserAddressesInPair(pair);
-
+    const allUsers = await optionstorage.getUserAddressesInPair(pair);
+    Pairs[i].users = [...new Set(allUsers)];
+    
     console.log("Users\n")
     console.log(Pairs[0].users);
 
     console.log("Pair Address:\n")
     console.log(Pairs[0].address);
-
 
   }
 
