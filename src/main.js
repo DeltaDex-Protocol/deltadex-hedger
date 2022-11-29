@@ -42,6 +42,7 @@ const Position = {
 }
 
 
+
 async function main() {
   while(true) {
     let numberOfPairs = await getPairs();
@@ -58,7 +59,7 @@ async function main() {
 
     output();
 
-    await sleep(60000);
+    await sleep(5000);
   }
 }
 
@@ -112,12 +113,17 @@ async function getUsers(numberOfPairs) {
 async function getPairs() {
   let numberOfPairs = await optionstorage.numOfPairs();
 
-  for (i = 0; i < numberOfPairs; i++) {
-    const _pair = Object.create(Pair);
-
-    _pair.address = await optionstorage.returnPairAddress(i);
-
-    Pairs.push(_pair);
+  if (Pairs.length < numberOfPairs) {
+    for (i = 0; i < numberOfPairs; i++) {
+      const _pair = Object.create(Pair);
+  
+      _pair.address = await optionstorage.returnPairAddress(i);
+  
+      Pairs.push(_pair);
+    }
+  }
+  else {
+    // pass 
   }
 
   return numberOfPairs;
