@@ -1,8 +1,6 @@
-// require("@nomiclabs/hardhat-waffle");
-// const {parseUnits} = require("ethers/lib/utils");
-const {ethers} = require('ethers');
+// Copyright 2022 DeltaDex
 
-require("dotenv").config();
+const {ethers} = require('ethers');
 
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
@@ -13,10 +11,12 @@ const OptionStorageAddress = '0x74E7CF978C61685dB8527086CD66316Ce7aF295c';
 const RPC = 'http://localhost:8545';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 
+require("dotenv").config();
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
+
 
 // data types
 const Pairs = [];
