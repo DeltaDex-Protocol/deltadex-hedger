@@ -42,6 +42,14 @@ const Position = {
 }
 
 
+const Users = new Map();
+
+const User = {
+  address: null,
+  positions: null,
+}
+
+
 
 async function main() {
   while(true) {
@@ -154,37 +162,54 @@ async function savePositions(numberOfPairs) {
 
       let numberOfUserPositions = await optionstorage.userIDlength(user);
 
-      for (ID = 0; ID < numberOfUserPositions; ID++) {
+      let getNumberOfUserPositionsDatabase = getNumberOfUserPositions(user);
 
-        let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
-        let type;
+      if (numberOfUserPositions > getNumberOfUserPositionsDatabase) {
+        Users.set(user, numberOfUserPositions);
 
-        if (positionData.amount == 0) {
-          positionData = await optionstorage.JDM_PositionParams(pair, user, ID);
-          type = "JDM";
+        for (ID = 0; ID < numberOfUserPositions; ID++) {
+
+          let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
+          let type;
+
+          if (positionData.amount == 0) {
+            positionData = await optionstorage.JDM_PositionParams(pair, user, ID);
+            type = "JDM";
+          }
+          else {
+            type = "BS";
+          }
+
+          const position = Object.create(Position);
+
+          position.pairAddress = pair;
+          position.userAddress = user;
+          position.type = type;
+          position.ID = ID;
+          position.amount = positionData[0];
+          position.expiry = positionData[1];
+          position.fees = positionData[2];
+          position.perDay = positionData[3].toNumber();
+          position.hedgeFee = positionData[4]
+          position.lastHedgeTimeStamp = positionData[5].toNumber();
+          position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
+
+          Positions.push(position);
         }
-        else {
-          type = "BS";
-        }
-
-        const position = Object.create(Position);
-
-        position.pairAddress = pair;
-        position.userAddress = user;
-        position.type = type;
-        position.ID = ID;
-        position.amount = positionData[0];
-        position.expiry = positionData[1];
-        position.fees = positionData[2];
-        position.perDay = positionData[3].toNumber();
-        position.hedgeFee = positionData[4]
-        position.lastHedgeTimeStamp = positionData[5].toNumber();
-        position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
-
-        Positions.push(position);
       }
     }
   }  
+}
+
+
+function getNumberOfUserPositions(user) {
+  let numberOfPositions = Users.get(user);
+
+  if (numberOfPositions == undefined) {
+    numberOfPositions = 0;
+  }
+
+  return numberOfPositions;
 }
 
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
