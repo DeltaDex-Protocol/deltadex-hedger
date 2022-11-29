@@ -28,60 +28,48 @@ const Pair = {
 
 const Positions = [];
 
-/*
-K = BS_Options[pair][user][ID].parameters.K;
-T = BS_Options[pair][user][ID].parameters.T;
-r = BS_Options[pair][user][ID].parameters.r;
-sigma = BS_Options[pair][user][ID].parameters.sigma;
-isCall = BS_Options[pair][user][ID].isCall;
-return (K,T,r,sigma,isCall);
-*/
-
 
 const Position = {
   pairAddress: null,
   userAddress: null,
-  type: null,
   ID: null,
+
+  addressTokenA: null,
+  addressTokenB: null,
+  tokenA_balance: null,
+  tokenB_balance: null,
+  isCall: null,
+  isLong: null,
+
   amount: null,
   expiry: null,
   fees: null,
   perDay: null,
   hedgeFee: null,
+
   lastHedgeTimeStamp: null,
   nextHedgeTimeStamp: null,
-  OptionParams: {},
-}
 
-const OptionParams = {
   K: null,
   T: null,
   r: null,
   sigma: null,
-  m: null,
-  v: null,
-  lam: null,
   isCall: null,
 }
+
 
 // @dev main func
 async function main() {
   let userAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
   let numberOfPairs = await getPairs(userAddress);
-
-  console.log("number of pairs", numberOfPairs);
-
   await getUserPostions(userAddress, numberOfPairs);
-
-  console.log("Positions script length", Positions.length);
 
   printPositions();
 }
 
-async function getUserPostions(userAddress, numberOfPairs) {
-  // let numberOfUserPositions = await optionstorage.userIDlength(userAddress);
 
+async function getUserPostions(userAddress, numberOfPairs) {
   let ID = 0;
 
   for (let pair = 0; pair < numberOfPairs; pair++) {
@@ -89,41 +77,38 @@ async function getUserPostions(userAddress, numberOfPairs) {
     let pairAddress = Pairs[pair].address;
 
     let positionData = await optionstorage.BS_PositionParams(pairAddress, userAddress, ID);
-    let type;
-
-    if (positionData.amount == 0) {
-    positionData = await optionstorage.JDM_PositionParams(pairAddress, userAddress, ID);
-    type = "JDM";
-    }
-    else {
-    type = "BS";
-    }
+    let optionParams = await optionstorage.BS_getDeltaParams(pairAddress, userAddress, ID);
 
     const position = Object.create(Position);
 
     position.pairAddress = pairAddress;
     position.userAddress = userAddress;
-    position.type = type;
     position.ID = ID;
+
     position.amount = positionData[0];
     position.expiry = positionData[1];
     position.fees = positionData[2];
     position.perDay = positionData[3].toNumber();
-    position.hedgeFee = positionData[4]
+    position.hedgeFee = positionData[4];
+
     position.lastHedgeTimeStamp = positionData[5].toNumber();
     position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
+
+    position.K = optionParams[0],
+    position.T = optionParams[1],
+    position.r = optionParams[2],
+    position.sigma = optionParams[3],
+    position.isCall = optionParams[4],
 
     Positions.push(position);
 
     ID++;
-  }   
+  }
 }
 
 
 async function getPairs(userAddress) {
   let PairAddresses = await optionstorage.getUserPositions(userAddress);
-
-  console.log("pair addresses", PairAddresses);
 
   for (i = 0; i < PairAddresses.length; i++) {
     const _pair = Object.create(Pair);
@@ -140,7 +125,6 @@ async function getPairs(userAddress) {
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
   interval = 86400 / perDay;
   nextTimeStamp = lastHedgeTimeStamp + interval;
-
   return nextTimeStamp;
 }
 
@@ -167,6 +151,7 @@ function printPositions() {
     console.log(Positions[i]);
   }
 }
+
 
 main().then(() => process.exit(0)).catch((error) => {
   console.error(error);
