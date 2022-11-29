@@ -123,22 +123,6 @@ function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
 }
 
 
-function arrangePositions() {
-  Positions.sort(compare);
-}
-
-
-function compare(a, b) {
-  if (a.nextHedgeTimeStamp < b.nextHedgeTimeStamp){
-    return -1;
-  }
-  if (a.nextHedgeTimeStamp > b.nextHedgeTimeStamp){
-    return 1;
-  }
-  return 0;
-}
-
-
 // @dev this is a test function
 function printPositions() {
   for (i = 0; i < Positions.length; i++) {
