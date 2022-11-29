@@ -252,7 +252,7 @@ async function output() {
   console.log('time now', (Date.now() / 1e3));
   console.log('next hedge', Positions[0].nextHedgeTimeStamp);
 
-  let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3));
+  let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3)) / 60;
 
   console.log('Number of pairs in contract: ', Pairs.length.toString());
   console.log('Number of open positions: ', Positions.length.toString());
