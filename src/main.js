@@ -18,6 +18,8 @@ const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
 
+
+// data types
 const Pairs = [];
 
 const Pair = {
@@ -41,7 +43,6 @@ const Position = {
   nextHedgeTimeStamp: null
 }
 
-
 const Users = new Map();
 
 const User = {
@@ -49,8 +50,7 @@ const User = {
   positions: null,
 }
 
-
-
+// @dev main func
 async function main() {
   while(true) {
     let numberOfPairs = await getPairs();
@@ -60,10 +60,7 @@ async function main() {
   
     arrangePositions();
 
-    checkIfHedgeAvailable();
-
-    // hedgePosition(0);
-    // printPositions();
+    await checkIfHedgeAvailable();
 
     output();
 
@@ -153,15 +150,12 @@ async function savePositions(numberOfPairs) {
   for (i = 0; i < numberOfPairs; i++) {
 
     let pair = Pairs[i].address;
-
     let users = Pairs[i].users;
 
     for (j = 0; j < users.length; j++) {
 
       let user = users[j];
-
       let numberOfUserPositions = await optionstorage.userIDlength(user);
-
       let getNumberOfUserPositionsDatabase = getNumberOfUserPositions(user);
 
       if (numberOfUserPositions > getNumberOfUserPositionsDatabase) {
@@ -212,6 +206,7 @@ function getNumberOfUserPositions(user) {
   return numberOfPositions;
 }
 
+
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
   interval = 86400 / perDay;
   nextTimeStamp = lastHedgeTimeStamp + interval;
@@ -226,15 +221,26 @@ function arrangePositions() {
 
 
 function compare(a, b) {
-  if ( a.nextHedgeTimeStamp < b.nextHedgeTimeStamp ){
+  if (a.nextHedgeTimeStamp < b.nextHedgeTimeStamp){
     return -1;
   }
-  if ( a.nextHedgeTimeStamp > b.nextHedgeTimeStamp ){
+  if (a.nextHedgeTimeStamp > b.nextHedgeTimeStamp){
     return 1;
   }
   return 0;
 }
 
+
+function output() {
+    console.log('Number of pairs in contract: ', Pairs.length.toString());
+    console.log('Number of open positions: ', Positions.length.toString());
+  }
+
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+  
 
 // @dev this is a test function
 function printPositions() {
@@ -243,14 +249,6 @@ function printPositions() {
   }
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function output() {
-  console.log('Number of pairs in contract: ', Pairs.length.toString());
-  console.log('Number of open positions: ', Positions.length.toString());
-}
 
 main().then(() => process.exit(0)).catch((error) => {
   console.error(error);

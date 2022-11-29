@@ -1,6 +1,7 @@
 // require("@nomiclabs/hardhat-waffle");
 // const {parseUnits} = require("ethers/lib/utils");
 const {ethers} = require('ethers');
+const { number } = require('mathjs');
 
 require('dotenv').config();
 
@@ -15,9 +16,9 @@ const provider = new ethers.providers.JsonRpcProvider(RPC);
 
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY_1, provider);
 
-const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
 
+// data types
 const Pairs = [];
 
 const Pair = {
@@ -42,175 +43,74 @@ const Position = {
 }
 
 
-const Users = new Map();
-
-const User = {
-  address: null,
-  positions: null,
-}
-
-
-
+// @dev main func
 async function main() {
-  while(true) {
-    let numberOfPairs = await getPairs();
+    let userAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
-    await getUsers(numberOfPairs);
-    await savePositions(numberOfPairs);
-  
-    arrangePositions();
+    let numberOfPairs = await getPairs(userAddress);
 
-    checkIfHedgeAvailable();
+    console.log(numberOfPairs);
 
-    // hedgePosition(0);
-    // printPositions();
+    await getUserPostions(userAddress, numberOfPairs);
 
-    output();
-
-    await sleep(5000);
-  }
+    printPositions();
 }
 
-// @dev this will be slow if there are multiple positions to hedge in a single block...
-async function checkIfHedgeAvailable() {
-  timestamp = Date.now();
+async function getUserPostions(userAddress, numberOfPairs) {
 
-  for (i = 0; i < Positions.length; i++) {
-    if (timestamp < Positions[i].nextHedgeTimeStamp) {
-      hedgePosition(i);
-    } 
-    else {
-      // pass
-    }
-  }
-} 
+    let numberOfUserPositions = await optionstorage.userIDlength(userAddress);
 
+    for (let pair = 0; pair < numberOfPairs; pair++) {
 
-async function hedgePosition(index) {
-  console.log("Hedging Position");
-
-  let position = Positions[index];
-
-  const pair = position.pairAddress;
-  const user = position.userAddress;
-  const ID = position.ID;
-
-  if (position.type == "BS") {
-    await optionmaker.BS_HEDGE(pair, user, ID);
-  }
-  else {
-    await optionmaker.JDM_HEDGE(pair, user, ID);
-  }
-  position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-
-  console.log("Hedging Position Sucess");
-  
-}
-
-
-async function getUsers(numberOfPairs) {
-  for (i = 0; i < numberOfPairs; i++) {
-    const pair = Pairs[i].address;
-
-    const allUsers = await optionstorage.getUserAddressesInPair(pair);
-    Pairs[i].users = [...new Set(allUsers)];
-  }
-}
-
-
-async function getPairs() {
-  let numberOfPairs = await optionstorage.numOfPairs();
-
-  if (Pairs.length < numberOfPairs) {
-    for (i = 0; i < numberOfPairs; i++) {
-      const _pair = Object.create(Pair);
-  
-      _pair.address = await optionstorage.returnPairAddress(i);
-  
-      Pairs.push(_pair);
-    }
-  }
-  else {
-    // pass 
-  }
-
-  return numberOfPairs;
-}
-
-
-async function savePositions(numberOfPairs) {
-  /* 
-    IMPORTANT DATA FOR HEDGING
-    uint amount;
-    uint expiry;
-    uint fees;
-    uint perDay;
-    uint hedgeFee;
-    uint lastHedgeTimeStamp;
-  */
-
-  // Getting all positions of all users
-  for (i = 0; i < numberOfPairs; i++) {
-
-    let pair = Pairs[i].address;
-
-    let users = Pairs[i].users;
-
-    for (j = 0; j < users.length; j++) {
-
-      let user = users[j];
-
-      let numberOfUserPositions = await optionstorage.userIDlength(user);
-
-      let getNumberOfUserPositionsDatabase = getNumberOfUserPositions(user);
-
-      if (numberOfUserPositions > getNumberOfUserPositionsDatabase) {
-        Users.set(user, numberOfUserPositions);
+        let pairAddress = Pairs[pair].address;
 
         for (ID = 0; ID < numberOfUserPositions; ID++) {
 
-          let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
-          let type;
-
-          if (positionData.amount == 0) {
-            positionData = await optionstorage.JDM_PositionParams(pair, user, ID);
+            let positionData = await optionstorage.BS_PositionParams(pairAddress, userAddress, ID);
+            let type;
+    
+            if (positionData.amount == 0) {
+            positionData = await optionstorage.JDM_PositionParams(pairAddress, userAddress, ID);
             type = "JDM";
-          }
-          else {
+            }
+            else {
             type = "BS";
-          }
-
-          const position = Object.create(Position);
-
-          position.pairAddress = pair;
-          position.userAddress = user;
-          position.type = type;
-          position.ID = ID;
-          position.amount = positionData[0];
-          position.expiry = positionData[1];
-          position.fees = positionData[2];
-          position.perDay = positionData[3].toNumber();
-          position.hedgeFee = positionData[4]
-          position.lastHedgeTimeStamp = positionData[5].toNumber();
-          position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
-
-          Positions.push(position);
+            }
+    
+            const position = Object.create(Position);
+    
+            position.pairAddress = pairAddress;
+            position.userAddress = userAddress;
+            position.type = type;
+            position.ID = ID;
+            position.amount = positionData[0];
+            position.expiry = positionData[1];
+            position.fees = positionData[2];
+            position.perDay = positionData[3].toNumber();
+            position.hedgeFee = positionData[4]
+            position.lastHedgeTimeStamp = positionData[5].toNumber();
+            position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
+    
+            Positions.push(position);
         }
-      }
     }
-  }  
 }
 
 
-function getNumberOfUserPositions(user) {
-  let numberOfPositions = Users.get(user);
+async function getPairs(userAddress) {
+  let PairAddresses = await optionstorage.getUserPositions(userAddress);
 
-  if (numberOfPositions == undefined) {
-    numberOfPositions = 0;
-  }
+    for (i = 0; i < PairAddresses.length; i++) {
+      const _pair = Object.create(Pair);
+  
+      _pair.address = PairAddresses[i];
+  
+      Pairs.push(_pair);
+    }
 
-  return numberOfPositions;
+  return PairAddresses.length;
 }
+
 
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
   interval = 86400 / perDay;
@@ -226,14 +126,16 @@ function arrangePositions() {
 
 
 function compare(a, b) {
-  if ( a.nextHedgeTimeStamp < b.nextHedgeTimeStamp ){
+  if (a.nextHedgeTimeStamp < b.nextHedgeTimeStamp){
     return -1;
   }
-  if ( a.nextHedgeTimeStamp > b.nextHedgeTimeStamp ){
+  if (a.nextHedgeTimeStamp > b.nextHedgeTimeStamp){
     return 1;
   }
   return 0;
 }
+
+
 
 
 // @dev this is a test function
@@ -241,15 +143,6 @@ function printPositions() {
   for (i = 0; i < Positions.length; i++) {
     console.log(Positions[i]);
   }
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function output() {
-  console.log('Number of pairs in contract: ', Pairs.length.toString());
-  console.log('Number of open positions: ', Positions.length.toString());
 }
 
 main().then(() => process.exit(0)).catch((error) => {
