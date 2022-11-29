@@ -5,8 +5,9 @@ const {ethers} = require('ethers');
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x235E4A333CdD327D68De53d8457C4032EeEBCBF6';
-const OptionStorageAddress = '0x74E7CF978C61685dB8527086CD66316Ce7aF295c';
+const OptionMakerAddress = '0x8c996D1362420c45513F22a3E28dc784beb0bE3f';
+const OptionStorageAddress = '0xb81bbe40Fc1e66CA48fAcD84809CF8F7A1f78f43';
+const DAIaddress = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 
 const RPC = 'http://localhost:8545';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
@@ -16,6 +17,21 @@ const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
+
+const daiABI = [
+  // Read-Only Functions
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+
+  // Authenticated Functions
+  "function transfer(address to, uint amount) returns (bool)",
+
+  // Events
+  "event Transfer(address indexed from, address indexed to, uint amount)"
+];
+
+const DAI = new ethers.Contract(DAIaddress, daiABI, signer);
 
 
 // data types
@@ -63,7 +79,7 @@ async function main() {
 
     output();
 
-    await sleep(5000);
+    await sleep(10000);
   }
 }
 
@@ -230,10 +246,20 @@ function compare(a, b) {
 }
 
 
-function output() {
-    console.log('Number of pairs in contract: ', Pairs.length.toString());
-    console.log('Number of open positions: ', Positions.length.toString());
-  }
+async function output() {
+  let balanceOf = await DAI.balanceOf('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+
+  console.log('time now', (Date.now() / 1e3));
+  console.log('next hedge', Positions[0].nextHedgeTimeStamp);
+
+  let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3));
+
+  console.log('Number of pairs in contract: ', Pairs.length.toString());
+  console.log('Number of open positions: ', Positions.length.toString());
+  console.log('Hedging in x minutes: ', nextHedge);
+
+  console.log('Dai balance of User: ', (balanceOf / 1e18).toString());
+}
 
 
 function sleep(ms) {
