@@ -76,8 +76,8 @@ async function main() {
   
     arrangePositions();
 
-    hedgePosition(0);
-    // await getGasPrice();
+    // hedgePosition(0);
+    
 
     await checkIfHedgeAvailable();
 
@@ -89,10 +89,13 @@ async function main() {
 
 // @dev this will be slow if there are multiple positions to hedge in a single block...
 async function checkIfHedgeAvailable() {
-  timestamp = Date.now();
+  timeNow = Date.now();
+
+  console.log("timeNow", timeNow);
+  console.log("nextHedgeTimeStamp", Positions[0].nextHedgeTimeStamp);
 
   for (i = 0; i < Positions.length; i++) {
-    if (timestamp < Positions[i].nextHedgeTimeStamp) {
+    if (timeNow > Positions[i].nextHedgeTimeStamp) {
       hedgePosition(i);
     } 
     else {
@@ -111,40 +114,22 @@ async function hedgePosition(index) {
   const user = position.userAddress;
   const ID = position.ID;
 
-  estimateTxCost(pair, user, ID, index);
+  let shouldHedge = estimateTxCost(pair, user, ID, index);
 
-  
-/*   // @dev this is a test function
-  let price = await provider.getFeeData();
-  console.log("gas price", price.gasPrice.toNumber());
-
-  let gas = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
-  console.log("gas", gas.toNumber());
-
-  let estimatetxETH = gas.mul(price.gasPrice);
-
-  const balance1 = await provider.getBalance(process.env.ADDRESS);
-  */
-  try {
-    await optionmaker.BS_HEDGE(pair, user, ID);
-  } catch(err) {
-    console.log(err);
+  if (shouldHedge) {
+    try {
+      await optionmaker.BS_HEDGE(pair, user, ID);
+    } catch(err) {
+      console.log("Hedging Failed");
+      console.log(err);
+    }
+    console.log("Hedging Position Success");
+  } else {
+    console.log("fee is less than tx price: DON'T HEDGE");
   }
-/* 
-  // @dev this is a test function
-  const balance2 = await provider.getBalance(process.env.ADDRESS);
-  console.log("tx price", balance1.sub(balance2).toNumber());
-
-  // @dev accuracy is usually +- 25%
-  const accuracy = estimatetxETH / (balance1 - balance2);
-  console.log("accuracy", accuracy);
-
- */
-
-
 
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-  console.log("Hedging Position Success");
+  
 }
 
 async function estimateTxCost(pair, user, ID, positionIndex) {
@@ -229,16 +214,6 @@ async function getPairs() {
 
 
 async function savePositions(numberOfPairs) {
-  /* 
-    IMPORTANT DATA FOR HEDGING
-    uint amount;
-    uint expiry;
-    uint fees;
-    uint perDay;
-    uint hedgeFee;
-    uint lastHedgeTimeStamp;
-  */
-
   // Getting all positions of all users
   for (i = 0; i < numberOfPairs; i++) {
 
