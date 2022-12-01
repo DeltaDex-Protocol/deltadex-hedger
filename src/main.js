@@ -66,6 +66,10 @@ const User = {
   positions: null,
 }
 
+
+let positionsHedged = 0;
+
+
 // @dev main func
 async function main() {
   while(true) {
@@ -108,8 +112,6 @@ async function checkIfHedgeAvailable() {
 
 
 async function hedgePosition(index) {
-  console.log("Hedging Position");
-
   let position = Positions[index];
 
   const pair = position.pairAddress;
@@ -126,6 +128,7 @@ async function hedgePosition(index) {
       console.log(err);
     }
     console.log("Hedging Position Success");
+    positionsHedged++;
   } else {
     console.log("fee is less than tx price: DON'T HEDGE");
   }
@@ -311,7 +314,8 @@ async function output() {
 
   console.log('Number of pairs in contract: ', Pairs.length.toString());
   console.log('Number of open positions: ', Positions.length.toString());
-  console.log('Hedging in x minutes: ', nextHedge);
+  console.log('Next hedge in %d minutes', nextHedge);
+  console.log('Number of positions hedged:', positionsHedged);
 
   console.log('Dai balance of User: ', (balanceOf / 1e18).toString());
 }
