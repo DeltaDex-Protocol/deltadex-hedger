@@ -136,18 +136,47 @@ async function hedgePosition(index) {
   const accuracy = estimatetxETH / (balance1 - balance2);
   console.log("accuracy", accuracy);
 
+  await getETHprice();
+
 
 
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
   console.log("Hedging Position Success");
 }
 
+async function estimateTxCost(pair, user, ID, positionIndex) {
 
-// function that gets the gas price of the current block
-async function estimateTxCost() {
   let price = await provider.getFeeData();
+  let gas = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
+  let fee = Positions[positionIndex].hedgeFee;
+
+  let txPrice = gas.mul(price.gasPrice);
+
+  if (fee > txPrice) {
+    console.log("fee is greater than tx price");
+  } else {
+    console.log("fee is less than tx price");
+  }
+
+
   console.log("gas price", price.gasPrice.toNumber());
 }
+
+/* // function that gets the gas price of the current block
+async function estimateTxCost(pair, user, ID) {
+  let price = await provider.getFeeData();
+  console.log("gas price", price.gasPrice.toNumber());
+} */
+async function getETHprice() {
+  let MATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
+  let price = await optionmaker.getPrice(MATIC, DAIaddress);
+
+
+  console.log("matic price", ethers.utils.parseEther(price).toString());
+}
+
+
+
 
 
 async function getUsers(numberOfPairs) {
