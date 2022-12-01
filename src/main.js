@@ -132,13 +132,14 @@ async function hedgePosition(index) {
   const balance2 = await provider.getBalance(process.env.ADDRESS);
   console.log("tx price", balance1.sub(balance2).toNumber());
 
-  const accuracy =(balance1 - balance2);
-  console.log("accuracy", accuracy.toNumber());
+  // @dev accuracy is usually +- 25%
+  const accuracy = estimatetxETH / (balance1 - balance2);
+  console.log("accuracy", accuracy);
 
 
 
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-  console.log("Hedging Position Sucess");
+  console.log("Hedging Position Success");
 }
 
 
