@@ -1,6 +1,7 @@
 // Copyright 2022 DeltaDex
 
 const {ethers} = require('ethers');
+const { boolean } = require('mathjs');
 
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
@@ -110,8 +111,10 @@ async function hedgePosition(index) {
   const user = position.userAddress;
   const ID = position.ID;
 
+  estimateTxCost(pair, user, ID, index);
+
   
-  // @dev this is a test function
+/*   // @dev this is a test function
   let price = await provider.getFeeData();
   console.log("gas price", price.gasPrice.toNumber());
 
@@ -121,13 +124,13 @@ async function hedgePosition(index) {
   let estimatetxETH = gas.mul(price.gasPrice);
 
   const balance1 = await provider.getBalance(process.env.ADDRESS);
- 
+  */
   try {
     await optionmaker.BS_HEDGE(pair, user, ID);
   } catch(err) {
     console.log(err);
   }
-
+/* 
   // @dev this is a test function
   const balance2 = await provider.getBalance(process.env.ADDRESS);
   console.log("tx price", balance1.sub(balance2).toNumber());
@@ -136,7 +139,7 @@ async function hedgePosition(index) {
   const accuracy = estimatetxETH / (balance1 - balance2);
   console.log("accuracy", accuracy);
 
-  await getETHprice();
+ */
 
 
 
@@ -146,38 +149,53 @@ async function hedgePosition(index) {
 
 async function estimateTxCost(pair, user, ID, positionIndex) {
 
-  let price = await provider.getFeeData();
-  let gas = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
-  let fee = Positions[positionIndex].hedgeFee;
+  let gasPrice = await provider.getFeeData();
+  let gasAmount = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
+  let fee = ethers.BigNumber.from(Positions[positionIndex].hedgeFee).toString() / 1e18;
 
-  let txPrice = gas.mul(price.gasPrice);
+  let txPrice = gasAmount.mul(gasPrice.gasPrice) / 1e18;
 
-  if (fee > txPrice) {
-    console.log("fee is greater than tx price");
+  let maticPrice = await getETHprice();
+
+  let txPriceDAI = txPrice * maticPrice;
+
+  let shouldHedge;
+
+  if (fee > txPriceDAI) {
+    console.log("fee", fee);
+    console.log("txPriceDAI", txPriceDAI);
+    console.log("fee is greater than tx price: HEDGE");
+
+    shouldHedge = true;
   } else {
-    console.log("fee is less than tx price");
+    console.log("fee", fee);
+    console.log("txPriceDAI", txPriceDAI);
+    console.log("fee is less than tx price: DONT HEDGE");
+
+    shouldHedge = false;
   }
 
-
-  console.log("gas price", price.gasPrice.toNumber());
+  return shouldHedge;
 }
 
-/* // function that gets the gas price of the current block
-async function estimateTxCost(pair, user, ID) {
+/* 
+// function that gets the gas price of the current block
+async function gasPrice(pair, user, ID) {
   let price = await provider.getFeeData();
   console.log("gas price", price.gasPrice.toNumber());
-} */
+}
+*/
+
+
+// get matic price in DAI
 async function getETHprice() {
   let MATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
   let price = await optionmaker.getPrice(MATIC, DAIaddress);
 
-  price = ethers.BigNumber.from(price).toString() / 1e18;
+  maticPrice = ethers.BigNumber.from(price).toString() / 1e18;
 
-  console.log("matic price", price);
+  return maticPrice;
 }
-
-
-
 
 
 async function getUsers(numberOfPairs) {
