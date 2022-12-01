@@ -77,7 +77,6 @@ async function main() {
     arrangePositions();
 
     // hedgePosition(0);
-    
 
     await checkIfHedgeAvailable();
 
@@ -87,12 +86,15 @@ async function main() {
   }
 }
 
-// @dev this will be slow if there are multiple positions to hedge in a single block...
-async function checkIfHedgeAvailable() {
-  timeNow = Date.now();
 
+// @dev this will be slow if there are multiple positions to hedge in a single block => multithreading?
+async function checkIfHedgeAvailable() {
+  timeNow = Date.now() / 1e3;
+
+  /*   
   console.log("timeNow", timeNow);
   console.log("nextHedgeTimeStamp", Positions[0].nextHedgeTimeStamp);
+  */
 
   for (i = 0; i < Positions.length; i++) {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
