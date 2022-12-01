@@ -5,8 +5,8 @@ const {ethers} = require('ethers');
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x8c996D1362420c45513F22a3E28dc784beb0bE3f';
-const OptionStorageAddress = '0xb81bbe40Fc1e66CA48fAcD84809CF8F7A1f78f43';
+const OptionMakerAddress = '0x235E4A333CdD327D68De53d8457C4032EeEBCBF6';
+const OptionStorageAddress = '0x74E7CF978C61685dB8527086CD66316Ce7aF295c';
 const DAIaddress = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 
 const RPC = 'http://localhost:8545';
@@ -75,6 +75,9 @@ async function main() {
   
     arrangePositions();
 
+    hedgePosition(0);
+    // await getGasPrice();
+
     await checkIfHedgeAvailable();
 
     output();
@@ -107,16 +110,42 @@ async function hedgePosition(index) {
   const user = position.userAddress;
   const ID = position.ID;
 
-  if (position.type == "BS") {
-    await optionmaker.BS_HEDGE(pair, user, ID);
-  }
-  else {
-    await optionmaker.JDM_HEDGE(pair, user, ID);
-  }
-  position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-
-  console.log("Hedging Position Sucess");
   
+  // @dev this is a test function
+  let price = await provider.getFeeData();
+  console.log("gas price", price.gasPrice.toNumber());
+
+  let gas = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
+  console.log("gas", gas.toNumber());
+
+  let estimatetxETH = gas.mul(price.gasPrice);
+
+  const balance1 = await provider.getBalance(process.env.ADDRESS);
+ 
+  try {
+    await optionmaker.BS_HEDGE(pair, user, ID);
+  } catch(err) {
+    console.log(err);
+  }
+
+  // @dev this is a test function
+  const balance2 = await provider.getBalance(process.env.ADDRESS);
+  console.log("tx price", balance1.sub(balance2).toNumber());
+
+  const accuracy =(balance1 - balance2);
+  console.log("accuracy", accuracy.toNumber());
+
+
+
+  position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
+  console.log("Hedging Position Sucess");
+}
+
+
+// function that gets the gas price of the current block
+async function estimateTxCost() {
+  let price = await provider.getFeeData();
+  console.log("gas price", price.gasPrice.toNumber());
 }
 
 

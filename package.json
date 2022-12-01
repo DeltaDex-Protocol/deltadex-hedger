@@ -12,6 +12,7 @@
     "dotenv": "^16.0.3",
     "hardhat": "^2.12.2",
     "mathjs": "^11.4.0",
+    "request": "^2.88.2",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
