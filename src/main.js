@@ -1,7 +1,7 @@
 // Copyright 2022 DeltaDex
 
 const {ethers} = require('ethers');
-const { boolean } = require('mathjs');
+const { round } = require('mathjs');
 
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
@@ -314,7 +314,7 @@ async function output() {
 
   console.log('Number of pairs in contract: ', Pairs.length.toString());
   console.log('Number of open positions: ', Positions.length.toString());
-  console.log('Next hedge in %d minutes', nextHedge);
+  console.log('Next hedge in %d minutes', round(nextHedge, 2));
   console.log('Number of positions hedged:', positionsHedged);
 
   console.log('Dai balance of User: ', (balanceOf / 1e18).toString());
