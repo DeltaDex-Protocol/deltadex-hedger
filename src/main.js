@@ -73,20 +73,25 @@ let positionsHedged = 0;
 // @dev main func
 async function main() {
   while(true) {
-    let numberOfPairs = await getPairs();
 
-    await getUsers(numberOfPairs);
-    await savePositions(numberOfPairs);
+    try {
+
+      let numberOfPairs = await getPairs();
+
+      await getUsers(numberOfPairs);
+      await savePositions(numberOfPairs);
+    
+      arrangePositions();
+
+      await checkIfHedgeAvailable();
   
-    arrangePositions();
+      output();
 
-    // hedgePosition(0);
+    } catch(err) {
+      console.log(err);
+    }
 
-    await checkIfHedgeAvailable();
-
-    output();
-
-    await sleep(10000);
+    await sleep(60000);
   }
 }
 
