@@ -171,8 +171,9 @@ async function getETHprice() {
   let MATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
   let price = await optionmaker.getPrice(MATIC, DAIaddress);
 
+  price = ethers.BigNumber.from(price).toString() / 1e18;
 
-  console.log("matic price", ethers.utils.parseEther(price).toString());
+  console.log("matic price", price);
 }
 
 
