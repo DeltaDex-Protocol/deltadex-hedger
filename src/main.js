@@ -6,11 +6,11 @@ const { round } = require('mathjs');
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x235E4A333CdD327D68De53d8457C4032EeEBCBF6';
-const OptionStorageAddress = '0x74E7CF978C61685dB8527086CD66316Ce7aF295c';
-const DAIaddress = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
+const OptionMakerAddress = '0x6031218C4d39Fa8d329921e89ee0A09771c8c272';
+const OptionStorageAddress = '0x2fdF3B84D1b6209AD51ceEBCCe2ab1478e121148';
+const DAIaddress = '0x6b89AeD87F8212bBc24C17687F020a2eD7DC3b9f';
 
-const RPC = 'http://localhost:8545';
+const RPC = 'https://rpc.ankr.com/polygon_mumbai';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 
 require("dotenv").config();
@@ -91,7 +91,7 @@ async function main() {
       console.log(err);
     }
 
-    await sleep(60000);
+    await sleep(20000);
   }
 }
 
