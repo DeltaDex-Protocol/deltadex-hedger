@@ -81,9 +81,7 @@ async function main() {
   while(true) {
 
     try {
-
       let numberOfPairs = await getPairs();
-
       await getUsers(numberOfPairs);
       await savePositions(numberOfPairs);
     
@@ -108,7 +106,7 @@ async function checkIfHedgeAvailable() {
 
   for (i = 0; i < Positions.length; i++) {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
-      hedgePosition(i);
+      await hedgePosition(i);
     } 
     else {
       // pass
@@ -126,10 +124,10 @@ async function hedgePosition(index) {
 
   let shouldHedge = await estimateTxCost(pair, user, ID, index);
 
-  console.log("here");
-  console.log(pair);
-  console.log(user);
-  console.log(ID);
+  console.log("Hedging", shouldHedge);
+  console.log("pair", pair);
+  console.log("users", user);
+  console.log("position ID", ID);
 
   if (shouldHedge) {
 
@@ -147,14 +145,12 @@ async function hedgePosition(index) {
   } else {
     console.log("fee is less than tx price: DON'T HEDGE");
   }
-/* 
-  position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-  console.log("153 next hedge time stamp", position.nextHedgeTimeStamp);
-   */
+  console.log("here");
+  position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now() / 1e3);
+
 }
 
 async function estimateTxCost(pair, user, ID, positionIndex) {
-
   let gasPrice = await provider.getFeeData();
   let gasAmount = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
   let fee = ethers.BigNumber.from(Positions[positionIndex].hedgeFee).toString() / 1e18;
