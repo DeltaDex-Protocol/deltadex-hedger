@@ -87,15 +87,15 @@ async function main() {
     
       arrangePositions();
 
-      await checkIfHedgeAvailable();
-  
       output();
+
+      await checkIfHedgeAvailable();
 
     } catch(err) {
       console.log(err);
     }
 
-    await sleep(20000);
+    await sleep(10000);
   }
 }
 
