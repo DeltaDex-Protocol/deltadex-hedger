@@ -6,9 +6,9 @@ const { round } = require('mathjs');
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x6031218C4d39Fa8d329921e89ee0A09771c8c272';
-const OptionStorageAddress = '0x2fdF3B84D1b6209AD51ceEBCCe2ab1478e121148';
-const DAIaddress = '0x6b89AeD87F8212bBc24C17687F020a2eD7DC3b9f';
+const OptionMakerAddress = '0x47f4290c26e87C390E84DAB6CA2BDaDDB979D77d';
+const OptionStorageAddress = '0x0c963331510aA7a38BaD05248274Db2d316B5684';
+const DAIaddress = '0xCC2B93C20df1831705EF869F8eA61f279FfbE183';
 
 const RPC = 'https://rpc.ankr.com/polygon_mumbai';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
@@ -125,15 +125,24 @@ async function hedgePosition(index) {
 
   let shouldHedge = estimateTxCost(pair, user, ID, index);
 
+  console.log("here");
+  console.log(pair);
+  console.log(user);
+  console.log(ID);
+
   if (shouldHedge) {
+
     try {
-      await optionmaker.BS_HEDGE(pair, user, ID);
+      const tx = await optionmaker.connect(signer).BS_HEDGE(pair, user, ID);
+      await tx.wait();
+      console.log("Hedging Position Success");
+
     } catch(err) {
       console.log("Hedging Failed");
       console.log(err);
     }
-    console.log("Hedging Position Success");
-    positionsHedged++;
+
+
   } else {
     console.log("fee is less than tx price: DON'T HEDGE");
   }
@@ -184,12 +193,12 @@ async function gasPrice(pair, user, ID) {
 
 // get matic price in DAI
 async function getETHprice() {
-  let MATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
-  let price = await optionmaker.getPrice(MATIC, DAIaddress);
+  let WETH = '0xb63e54810B4e7A8047A5Edae1BdD3Ab4B0E7B698';
+  let price = await optionmaker.getPrice(WETH, DAIaddress);
 
-  maticPrice = ethers.BigNumber.from(price).toString() / 1e18;
+  wethPrice = ethers.BigNumber.from(price).toString() / 1e18;
 
-  return maticPrice;
+  return wethPrice;
 }
 
 
