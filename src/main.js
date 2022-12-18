@@ -83,12 +83,8 @@ async function main() {
     
       arrangePositions();
 
-      try {
-        await checkIfHedgeAvailable();
-      } catch(err) {
-        // 
-      }
-
+      await checkIfHedgeAvailable();
+  
       output();
 
     } catch(err) {
@@ -127,7 +123,7 @@ async function hedgePosition(index) {
   const user = position.userAddress;
   const ID = position.ID;
 
-  let shouldHedge = estimateTxCost(pair, user, ID, index);
+  let shouldHedge = await estimateTxCost(pair, user, ID, index);
 
   console.log("here");
   console.log(pair);
