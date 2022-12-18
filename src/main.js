@@ -20,8 +20,6 @@ const provider = new ethers.providers.JsonRpcProvider(RPC);
 require("dotenv").config();
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-
-
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
 
@@ -89,13 +87,21 @@ async function main() {
 
       output();
 
-      await checkIfHedgeAvailable();
+      console.log("here");
+
+      try {
+        await checkIfHedgeAvailable();
+      } catch(err) {
+        console.log(err);
+      }
+
+      // await checkIfHedgeAvailable();
 
     } catch(err) {
-      console.log(err);
+      // console.log(err);
     }
 
-    await sleep(10000);
+    await sleep(1000);
   }
 }
 
@@ -106,9 +112,13 @@ async function checkIfHedgeAvailable() {
 
   for (i = 0; i < Positions.length; i++) {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
-      await hedgePosition(i);
-    } 
-    else {
+      try {
+        await hedgePosition(i);
+      } catch(err) {
+        // pass
+        console.log(err);
+      }
+    } else {
       // pass
     }
   }
@@ -130,7 +140,6 @@ async function hedgePosition(index) {
   console.log("position ID", ID);
 
   if (shouldHedge) {
-
     try {
       const tx = await optionmaker.connect(signer).BS_HEDGE(pair, user, ID);
       await tx.wait();
