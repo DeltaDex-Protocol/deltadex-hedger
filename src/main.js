@@ -83,8 +83,12 @@ async function main() {
     
       arrangePositions();
 
-      await checkIfHedgeAvailable();
-  
+      try {
+        await checkIfHedgeAvailable();
+      } catch(err) {
+        // 
+      }
+
       output();
 
     } catch(err) {
