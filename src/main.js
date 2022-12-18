@@ -6,15 +6,21 @@ const { round } = require('mathjs');
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
-const OptionMakerAddress = '0x47f4290c26e87C390E84DAB6CA2BDaDDB979D77d';
-const OptionStorageAddress = '0x0c963331510aA7a38BaD05248274Db2d316B5684';
+const OptionMakerAddress = '0xC19aD22266429492826af86549f69368e991A77E';
+const OptionStorageAddress = '0x4aeBd438eeedF91CC131281859A51C650FB3dFDb';
+
+
 const DAIaddress = '0xCC2B93C20df1831705EF869F8eA61f279FfbE183';
+const WETHaddress = '0xb63e54810B4e7A8047A5Edae1BdD3Ab4B0E7B698';
+const MATICaddress = '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889';
 
 const RPC = 'https://rpc.ankr.com/polygon_mumbai';
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 
 require("dotenv").config();
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+
 
 const optionmaker = new ethers.Contract(OptionMakerAddress, coreABI, signer);
 const optionstorage = new ethers.Contract(OptionStorageAddress, storageABI, signer);
@@ -100,11 +106,6 @@ async function main() {
 async function checkIfHedgeAvailable() {
   timeNow = Date.now() / 1e3;
 
-  /*   
-  console.log("timeNow", timeNow);
-  console.log("nextHedgeTimeStamp", Positions[0].nextHedgeTimeStamp);
-  */
-
   for (i = 0; i < Positions.length; i++) {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
       hedgePosition(i);
@@ -135,6 +136,7 @@ async function hedgePosition(index) {
     try {
       const tx = await optionmaker.connect(signer).BS_HEDGE(pair, user, ID);
       await tx.wait();
+      positionsHedged++;
       console.log("Hedging Position Success");
 
     } catch(err) {
@@ -142,13 +144,13 @@ async function hedgePosition(index) {
       console.log(err);
     }
 
-
   } else {
     console.log("fee is less than tx price: DON'T HEDGE");
   }
-
+/* 
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now());
-  
+  console.log("153 next hedge time stamp", position.nextHedgeTimeStamp);
+   */
 }
 
 async function estimateTxCost(pair, user, ID, positionIndex) {
@@ -159,7 +161,7 @@ async function estimateTxCost(pair, user, ID, positionIndex) {
 
   let txPrice = gasAmount.mul(gasPrice.gasPrice) / 1e18;
 
-  let maticPrice = await getETHprice();
+  let maticPrice = await getMATICprice();
 
   let txPriceDAI = txPrice * maticPrice;
 
@@ -192,9 +194,8 @@ async function gasPrice(pair, user, ID) {
 
 
 // get matic price in DAI
-async function getETHprice() {
-  let WETH = '0xb63e54810B4e7A8047A5Edae1BdD3Ab4B0E7B698';
-  let price = await optionmaker.getPrice(WETH, DAIaddress);
+async function getMATICprice() {
+  let price = await optionmaker.getPrice(MATICaddress, DAIaddress);
 
   wethPrice = ethers.BigNumber.from(price).toString() / 1e18;
 
@@ -319,7 +320,7 @@ function compare(a, b) {
 
 
 async function output() {
-  let balanceOf = await DAI.balanceOf('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+  let balanceOf = await DAI.balanceOf(signer.address);
 
   console.log('time now', (Date.now() / 1e3));
   console.log('next hedge', Positions[0].nextHedgeTimeStamp);
