@@ -87,12 +87,13 @@ async function main() {
 
       output();
 
-      console.log("here");
+      // console.log("here");
 
       try {
         await checkIfHedgeAvailable();
       } catch(err) {
-        console.log(err);
+        // console.log(err);
+        console.log("error 96");
       }
 
       // await checkIfHedgeAvailable();
@@ -116,7 +117,7 @@ async function checkIfHedgeAvailable() {
         await hedgePosition(i);
       } catch(err) {
         // pass
-        console.log(err);
+        console.log("error 120");
       }
     } else {
       // pass
@@ -147,8 +148,8 @@ async function hedgePosition(index) {
       console.log("Hedging Position Success");
 
     } catch(err) {
-      console.log("Hedging Failed");
-      console.log(err);
+      console.log("Hedging Failed 151");
+      // console.log(err);
     }
 
   } else {
