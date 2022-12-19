@@ -353,14 +353,15 @@ function compare(a, b) {
 
 
 async function output() {
-  let earnedFees = initialUserBalance - await DAI.balanceOf(signer.address);
+  let earnedFees = await DAI.balanceOf(signer.address) - initialUserBalance;
   let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3)) / 60;
 
   console.log('____________________________________________________')
 
-  console.log('Number of pairs in contract: ', Pairs.length.toString());
-  console.log('Number of open positions: ', Positions.length.toString());
-  console.log('Number of active users: ', activeUsers.toString());
+  console.log('Number of token pairs in DeltaDex Core: ', Pairs.length.toString());
+  console.log('Total Number of Option Contracts: ', Positions.length.toString());
+  console.log('Total Number of active users: ', activeUsers.toString());
+  console.log('Number of positions hedged: ', positionsHedged.toString());
 
   let timeToNextHedge = round(nextHedge, 2);
   if (timeToNextHedge < 1) {
