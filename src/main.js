@@ -64,15 +64,18 @@ const Position = {
 
 const Users = new Map();
 
-let activeUsers;
+let activeUsers = 0;
 let positionsHedged = 0;
+let initialUserBalance = 0;
 
 console.log("initializing...");
 
 // @dev main func
 async function main() {
-  while(true) {
 
+  initialUserBalance = await DAI.balanceOf(signer.address);
+
+  while(true) {
     try {
       let numberOfPairs = await getPairs();
       await getUsers(numberOfPairs);
@@ -343,7 +346,7 @@ function compare(a, b) {
 
 
 async function output() {
-  let balanceOf = await DAI.balanceOf(signer.address);
+  let earnedFees = initialUserBalance - await DAI.balanceOf(signer.address);
   let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3)) / 60;
 
   console.log('____________________________________________________')
@@ -359,7 +362,7 @@ async function output() {
   } else {
     console.log('Next hedge in %d minutes', timeToNextHedge);
   }
-  console.log('Dai balance of User: ', (balanceOf / 1e18).toString());
+  console.log('Fees earned hedging: ', (earnedFees / 1e18).toString());
 }
 
 
