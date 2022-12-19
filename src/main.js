@@ -1,14 +1,13 @@
 // Copyright 2022 DeltaDex
 
 const {ethers} = require('ethers');
-const { round } = require('mathjs');
+const { round, e } = require('mathjs');
 
 const coreABI = require('../abi/OptionMaker.json');
 const storageABI = require('../abi/OptionStorage.json');
 
 const OptionMakerAddress = '0x9581899a5cD67b63Aac1bccE7eB2447627801076';
 const OptionStorageAddress = '0xe6eb097B4e81bE155BB91e6686BF019e56b96EeC';
-
 
 const DAIaddress = '0x91D35db3222c0b96B9791667bF1d617d500CB180';
 const WETHaddress = '0xb63e54810B4e7A8047A5Edae1BdD3Ab4B0E7B698';
@@ -52,7 +51,6 @@ const Positions = [];
 const Position = {
   pairAddress: null,
   userAddress: null,
-  type: null,
   ID: null,
   amount: null,
   expiry: null,
@@ -60,19 +58,16 @@ const Position = {
   perDay: null,
   hedgeFee: null,
   lastHedgeTimeStamp: null,
-  nextHedgeTimeStamp: null
+  nextHedgeTimeStamp: null,
+  isClosed: null,
 }
 
 const Users = new Map();
 
-const User = {
-  address: null,
-  positions: null,
-}
-
-
+let activeUsers;
 let positionsHedged = 0;
 
+console.log("initializing...");
 
 // @dev main func
 async function main() {
@@ -85,18 +80,14 @@ async function main() {
     
       arrangePositions();
 
-      output();
-
-      // console.log("here");
 
       try {
         await checkIfHedgeAvailable();
       } catch(err) {
-        // console.log(err);
-        console.log("error 96");
+        console.log("error - main");
       }
 
-      // await checkIfHedgeAvailable();
+      output();
 
     } catch(err) {
       // console.log(err);
@@ -116,8 +107,25 @@ async function checkIfHedgeAvailable() {
       try {
         await hedgePosition(i);
       } catch(err) {
-        // pass
-        console.log("error 120");
+        // console.log(err);
+        console.log("error line 112");
+        Positions[i].nextHedgeTimeStamp = nextHedgeTimeStamp(Positions[i].perDay, Date.now() / 1e3);
+
+        if(err.reason == 'execution reverted: Not enough balance to hedge, 108') {
+
+          console.log('____________________________________________________');
+
+          console.log('Hedge Failed');
+          console.log('Pair Address', Positions[i].pairAddress);
+          console.log('User Address', Positions[i].userAddress);
+          console.log('Position ID', Positions[i].ID);
+
+          console.log('Reason: Not enough balance to hedge (user)');
+
+        } else {
+          console.log(err.reason);
+        }
+
       }
     } else {
       // pass
@@ -135,10 +143,13 @@ async function hedgePosition(index) {
 
   let shouldHedge = await estimateTxCost(pair, user, ID, index);
 
+  console.log('____________________________________________________');
+
   console.log("Hedging", shouldHedge);
-  console.log("pair", pair);
-  console.log("users", user);
-  console.log("position ID", ID);
+  console.log("Pair Address: ", pair);
+  console.log("User Address: ", user);
+  console.log("Position ID: ", ID);
+  console.log("Hedging: ", shouldHedge ? "YES" : "NO");
 
   if (shouldHedge) {
     try {
@@ -148,14 +159,12 @@ async function hedgePosition(index) {
       console.log("Hedging Position Success");
 
     } catch(err) {
-      console.log("Hedging Failed 151");
-      // console.log(err);
+      console.log("Hedging Failed - hedgePosition");
     }
 
   } else {
-    console.log("fee is less than tx price: DON'T HEDGE");
+    console.log("=> Reason: fee is less than tx price");
   }
-  console.log("here");
   position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, Date.now() / 1e3);
 
 }
@@ -174,16 +183,16 @@ async function estimateTxCost(pair, user, ID, positionIndex) {
   let shouldHedge;
 
   if (fee > txPriceDAI) {
-    console.log("fee", fee);
+/*     console.log("fee", fee);
     console.log("txPriceDAI", txPriceDAI);
     console.log("fee is greater than tx price: HEDGE");
-
+ */
     shouldHedge = true;
   } else {
-    console.log("fee", fee);
+/*     console.log("fee", fee);
     console.log("txPriceDAI", txPriceDAI);
     console.log("fee is less than tx price: DONT HEDGE");
-
+ */
     shouldHedge = false;
   }
 
@@ -210,11 +219,14 @@ async function getMATICprice() {
 
 
 async function getUsers(numberOfPairs) {
+  activeUsers = 0;
   for (i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
     const allUsers = await optionstorage.getUserAddressesInPair(pair);
     Pairs[i].users = [...new Set(allUsers)];
+
+    activeUsers += Pairs[i].users.length;
   }
 }
 
@@ -257,32 +269,37 @@ async function savePositions(numberOfPairs) {
 
         for (ID = 0; ID < numberOfUserPositions; ID++) {
 
-          let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
-          let type;
+          let isClosed = await optionstorage.getPositionStatus(pair, user, ID);
 
-          if (positionData.amount == 0) {
-            positionData = await optionstorage.JDM_PositionParams(pair, user, ID);
-            type = "JDM";
-          }
-          else {
-            type = "BS";
-          }
+          console.log('____________________________________________________')
+
+          console.log("Pair Address:", pair);
+          console.log("User Address:", user);
+          console.log("Position ID:", ID);
+          console.log("Active Position: ", isClosed);
 
           const position = Object.create(Position);
 
-          position.pairAddress = pair;
-          position.userAddress = user;
-          position.type = type;
-          position.ID = ID;
-          position.amount = positionData[0];
-          position.expiry = positionData[1];
-          position.fees = positionData[2];
-          position.perDay = positionData[3].toNumber();
-          position.hedgeFee = positionData[4]
-          position.lastHedgeTimeStamp = positionData[5].toNumber();
-          position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
+          if (isClosed == false) {
+            let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
 
-          Positions.push(position);
+            position.pairAddress = pair;
+            position.userAddress = user;
+            position.ID = ID;
+            position.amount = positionData[0];
+            position.expiry = positionData[1];
+            position.fees = positionData[2];
+            position.perDay = positionData[3].toNumber();
+            position.hedgeFee = positionData[4]
+            position.lastHedgeTimeStamp = positionData[5].toNumber();
+            position.nextHedgeTimeStamp = nextHedgeTimeStamp(position.perDay, position.lastHedgeTimeStamp);
+            position.isClosed = false;
+
+            Positions.push(position);
+          } else {
+            // pass
+          }
+          
         }
       }
     }
@@ -327,17 +344,21 @@ function compare(a, b) {
 
 async function output() {
   let balanceOf = await DAI.balanceOf(signer.address);
-
-  console.log('time now', (Date.now() / 1e3));
-  console.log('next hedge', Positions[0].nextHedgeTimeStamp);
-
   let nextHedge = (Positions[0].nextHedgeTimeStamp - (Date.now() / 1e3)) / 60;
+
+  console.log('____________________________________________________')
 
   console.log('Number of pairs in contract: ', Pairs.length.toString());
   console.log('Number of open positions: ', Positions.length.toString());
-  console.log('Next hedge in %d minutes', round(nextHedge, 2));
-  console.log('Number of positions hedged:', positionsHedged);
+  console.log('Number of active users: ', activeUsers.toString());
 
+  let timeToNextHedge = round(nextHedge, 2);
+  if (timeToNextHedge < 1) {
+    timeToNextHedge = timeToNextHedge * 60;
+    console.log('Next hedge in %d seconds', round(timeToNextHedge, 2));
+  } else {
+    console.log('Next hedge in %d minutes', timeToNextHedge);
+  }
   console.log('Dai balance of User: ', (balanceOf / 1e18).toString());
 }
 
