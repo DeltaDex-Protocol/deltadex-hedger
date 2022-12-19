@@ -67,12 +67,12 @@ const Users = new Map();
 let activeUsers = 0;
 let positionsHedged = 0;
 let initialUserBalance = 0;
+let isInitialized = false;
 
 console.log("initializing...");
 
 // @dev main func
 async function main() {
-
   initialUserBalance = await DAI.balanceOf(signer.address);
 
   while(true) {
@@ -83,7 +83,6 @@ async function main() {
     
       arrangePositions();
 
-
       try {
         await checkIfHedgeAvailable();
       } catch(err) {
@@ -92,9 +91,12 @@ async function main() {
 
       output();
 
+
     } catch(err) {
       // console.log(err);
     }
+
+    isInitialized = true;
 
     await sleep(1000);
   }
@@ -268,6 +270,11 @@ async function savePositions(numberOfPairs) {
       let getNumberOfUserPositionsDatabase = getNumberOfUserPositions(user);
 
       if (numberOfUserPositions > getNumberOfUserPositionsDatabase) {
+        if (isInitialized == true) {
+          console.log('____________________________________________________')
+          console.log('New Option Replication Detected');
+        }
+
         Users.set(user, numberOfUserPositions);
 
         for (ID = 0; ID < numberOfUserPositions; ID++) {
