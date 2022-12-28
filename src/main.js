@@ -71,9 +71,15 @@ let isInitialized = false;
 
 console.log("initializing...");
 
+
 // @dev main func
 async function main() {
-  initialUserBalance = await DAI.balanceOf(signer.address);
+  try {
+    initialUserBalance = await DAI.balanceOf(signer.address);
+  } catch(err) {
+    console.log(err);
+    console.log("initialUserBalance error");
+  }
 
   while(true) {
     try {
@@ -90,7 +96,6 @@ async function main() {
       }
 
       output();
-
 
     } catch(err) {
       // console.log(err);
@@ -116,7 +121,7 @@ async function checkIfHedgeAvailable() {
         console.log("error line 112");
         Positions[i].nextHedgeTimeStamp = nextHedgeTimeStamp(Positions[i].perDay, Date.now() / 1e3);
 
-        if(err.reason == 'execution reverted: Not enough balance to hedge, 108') {
+        if(err.reason == 'execution reverted: Not enough balance to hedge, 123') {
 
           console.log('____________________________________________________');
 
@@ -174,48 +179,39 @@ async function hedgePosition(index) {
 
 }
 
+
 async function estimateTxCost(pair, user, ID, positionIndex) {
   let gasPrice = await provider.getFeeData();
   let gasAmount = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
   let fee = ethers.BigNumber.from(Positions[positionIndex].hedgeFee).toString() / 1e18;
 
   let txPrice = gasAmount.mul(gasPrice.gasPrice) / 1e18;
-
   let maticPrice = await getMATICprice();
-
   let txPriceDAI = txPrice * maticPrice;
 
   let shouldHedge;
 
   if (fee > txPriceDAI) {
-/*     console.log("fee", fee);
-    console.log("txPriceDAI", txPriceDAI);
-    console.log("fee is greater than tx price: HEDGE");
- */
     shouldHedge = true;
-  } else {
-/*     console.log("fee", fee);
-    console.log("txPriceDAI", txPriceDAI);
-    console.log("fee is less than tx price: DONT HEDGE");
- */
+  } 
+  else {
     shouldHedge = false;
   }
 
   return shouldHedge;
 }
 
-/* 
-// function that gets the gas price of the current block
-async function gasPrice(pair, user, ID) {
-  let price = await provider.getFeeData();
-  console.log("gas price", price.gasPrice.toNumber());
-}
-*/
-
 
 // get matic price in DAI
 async function getMATICprice() {
-  let price = await optionmaker.getPrice(MATICaddress, DAIaddress);
+  let price
+  try {
+    price = await optionmaker.getPrice(MATICaddress, DAIaddress);
+  }
+  catch(err) {
+    console.log(err);
+    console.log("error - getMATICprice");
+  }
 
   wethPrice = ethers.BigNumber.from(price).toString() / 1e18;
 
@@ -228,10 +224,15 @@ async function getUsers(numberOfPairs) {
   for (i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
-    const allUsers = await optionstorage.getUserAddressesInPair(pair);
-    Pairs[i].users = [...new Set(allUsers)];
-
-    activeUsers += Pairs[i].users.length;
+    try {
+      const allUsers = await optionstorage.getUserAddressesInPair(pair);
+      Pairs[i].users = [...new Set(allUsers)];
+      activeUsers += Pairs[i].users.length;
+    } 
+    catch(err) {
+      console.log(err);
+      console.log("error - getUsers");
+    }
   }
 }
 
@@ -242,8 +243,14 @@ async function getPairs() {
   if (Pairs.length < numberOfPairs) {
     for (i = 0; i < numberOfPairs; i++) {
       const _pair = Object.create(Pair);
-  
-      _pair.address = await optionstorage.returnPairAddress(i);
+
+      try {
+        _pair.address = await optionstorage.returnPairAddress(i);
+      }
+      catch(err) {
+        console.log(err);
+        console.log("error - returnPairAddress");
+      }
   
       Pairs.push(_pair);
     }
@@ -266,7 +273,16 @@ async function savePositions(numberOfPairs) {
     for (j = 0; j < users.length; j++) {
 
       let user = users[j];
-      let numberOfUserPositions = await optionstorage.userIDlength(user);
+      let numberOfUserPositions;
+
+      try {
+        numberOfUserPositions = await optionstorage.userIDlength(user);
+      } 
+      catch(err) {
+        console.log(err);
+        console.log("error - numberOfUserPositions");
+      }
+
       let getNumberOfUserPositionsDatabase = getNumberOfUserPositions(user);
 
       if (numberOfUserPositions > getNumberOfUserPositionsDatabase) {
@@ -279,7 +295,14 @@ async function savePositions(numberOfPairs) {
 
         for (ID = 0; ID < numberOfUserPositions; ID++) {
 
-          let isClosed = await optionstorage.getPositionStatus(pair, user, ID);
+          let isClosed;
+          try {
+            isClosed = await optionstorage.getPositionStatus(pair, user, ID);
+          }
+          catch(err) {
+            console.log(err);
+            console.log("error - isClosed");
+          }
 
           console.log('____________________________________________________')
 
@@ -291,7 +314,14 @@ async function savePositions(numberOfPairs) {
           const position = Object.create(Position);
 
           if (isClosed == false) {
-            let positionData = await optionstorage.BS_PositionParams(pair, user, ID);
+            let positionData;
+            try {
+              positionData = await optionstorage.BS_PositionParams(pair, user, ID);
+            } 
+            catch(err) {
+              console.log(err);
+              console.log("error - positionData");
+            }
 
             position.pairAddress = pair;
             position.userAddress = user;
@@ -309,7 +339,7 @@ async function savePositions(numberOfPairs) {
           } else {
             // pass
           }
-          
+
         }
       }
     }
