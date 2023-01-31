@@ -41,16 +41,16 @@ const DAI = new ethers.Contract(DAIaddress, daiABI, signer);
 
 
 // data types
-const Pairs: Pair[] = [];
+const Pairs: IPair[] = [];
 
-interface Pair {
+interface IPair {
   address: string;
-  users: [];
+  users: string[];
 }
 
-const Positions: Position[] = [];
+const Positions: IPosition[] = [];
 
-interface Position {
+interface IPosition {
   pairAddress: string;
   userAddress: string;
   ID: number;
@@ -78,7 +78,7 @@ console.log("initializing...");
 async function main() {
   try {
     initialUserBalance = await DAI.balanceOf(signer.address);
-  } catch(err) {
+  } catch(err: any) {
     console.log(err);
     console.log("initialUserBalance error");
   }
@@ -93,7 +93,7 @@ async function main() {
 
       try {
         await checkIfHedgeAvailable();
-      } catch(err) {
+      } catch(err: any) {
         console.log("error - main");
       }
 
@@ -118,7 +118,7 @@ async function checkIfHedgeAvailable() {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
       try {
         await hedgePosition(i);
-      } catch(err) {
+      } catch(err: any) {
         // console.log(err);
         console.log("error line 112");
         Positions[i].nextHedgeTimeStamp = nextHedgeTimeStamp(Positions[i].perDay, Date.now() / 1e3);
@@ -146,7 +146,7 @@ async function checkIfHedgeAvailable() {
 } 
 
 
-async function hedgePosition(index) {
+async function hedgePosition(index: number) {
   let position = Positions[index];
 
   const pair = position.pairAddress;
@@ -182,7 +182,7 @@ async function hedgePosition(index) {
 }
 
 
-async function estimateTxCost(pair, user, ID, positionIndex) {
+async function estimateTxCost(pair: string, user: string, ID: number, positionIndex: number) {
   let gasPrice = await provider.getFeeData();
   let gasAmount = await optionmaker.estimateGas.BS_HEDGE(pair, user, ID);
   let fee = ethers.BigNumber.from(Positions[positionIndex].hedgeFee).toString() / 1e18;
@@ -221,13 +221,13 @@ async function getMATICprice() {
 }
 
 
-async function getUsers(numberOfPairs) {
+async function getUsers(numberOfPairs: number) {
   activeUsers = 0;
   for (let i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
     try {
-      const allUsers = await optionstorage.getUserAddressesInPair(pair);
+      const allUsers: string[] = await optionstorage.getUserAddressesInPair(pair);
       Pairs[i].users = [...new Set(allUsers)];
       activeUsers += Pairs[i].users.length;
     } 
@@ -239,11 +239,17 @@ async function getUsers(numberOfPairs) {
 }
 
 
-async function getPairs() {
-  let numberOfPairs = await optionstorage.numOfPairs();
+async function getPairs(): Promise<number> {
+  let numberOfPairs: number = await optionstorage.numOfPairs();
 
   if (Pairs.length < numberOfPairs) {
     for (let i = 0; i < numberOfPairs; i++) {
+
+      const Pair: IPair = {
+        address: '',
+        users: [],
+      };
+
       const _pair = Object.create(Pair);
 
       try {
@@ -265,7 +271,7 @@ async function getPairs() {
 }
 
 
-async function savePositions(numberOfPairs) {
+async function savePositions(numberOfPairs: number) {
   // Getting all positions of all users
   for (let i = 0; i < numberOfPairs; i++) {
 
@@ -313,6 +319,20 @@ async function savePositions(numberOfPairs) {
           console.log("Position ID:", ID);
           console.log("Active Position: ", isClosed);
 
+          const Position: IPosition = {
+              pairAddress: pair,
+              userAddress: user,
+              ID: ID,
+              amount: 0,
+              expiry: 0,
+              fees: 0,
+              perDay: 0,
+              hedgeFee: 0,
+              lastHedgeTimeStamp: 0,
+              nextHedgeTimeStamp: 0,
+              isClosed: isClosed
+          };
+
           const position = Object.create(Position);
 
           if (isClosed == false) {
@@ -349,7 +369,7 @@ async function savePositions(numberOfPairs) {
 }
 
 
-function getNumberOfUserPositions(user) {
+function getNumberOfUserPositions(user: string) {
   let numberOfPositions = Users.get(user);
 
   if (numberOfPositions == undefined) {
@@ -360,7 +380,7 @@ function getNumberOfUserPositions(user) {
 }
 
 
-function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
+function nextHedgeTimeStamp(perDay: number, lastHedgeTimeStamp: number) {
   let interval = 86400 / perDay;
   let nextTimeStamp = lastHedgeTimeStamp + interval;
 
@@ -373,7 +393,7 @@ function arrangePositions() {
 }
 
 
-function compare(a, b) {
+function compare(a: IPosition, b: IPosition) {
   if (a.nextHedgeTimeStamp < b.nextHedgeTimeStamp){
     return -1;
   }
@@ -406,7 +426,7 @@ async function output() {
 }
 
 
-function sleep(ms) {
+function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
   
