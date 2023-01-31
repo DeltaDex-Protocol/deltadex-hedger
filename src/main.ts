@@ -1,5 +1,7 @@
 // Copyright 2022 DeltaDex
 
+import { boolean, number, string } from "mathjs";
+
 const {ethers} = require('ethers');
 const { round, e } = require('mathjs');
 
@@ -39,27 +41,27 @@ const DAI = new ethers.Contract(DAIaddress, daiABI, signer);
 
 
 // data types
-const Pairs = [];
+const Pairs: Pair[] = [];
 
-const Pair = {
-  address: null,
-  users: [],
+interface Pair {
+  address: string;
+  users: [];
 }
 
-const Positions = [];
+const Positions: Position[] = [];
 
-const Position = {
-  pairAddress: null,
-  userAddress: null,
-  ID: null,
-  amount: null,
-  expiry: null,
-  fees: null,
-  perDay: null,
-  hedgeFee: null,
-  lastHedgeTimeStamp: null,
-  nextHedgeTimeStamp: null,
-  isClosed: null,
+interface Position {
+  pairAddress: string;
+  userAddress: string;
+  ID: number;
+  amount: number;
+  expiry: number;
+  fees: number;
+  perDay: number;
+  hedgeFee: number;
+  lastHedgeTimeStamp: number;
+  nextHedgeTimeStamp: number;
+  isClosed: boolean;
 }
 
 const Users = new Map();
@@ -110,9 +112,9 @@ async function main() {
 
 // @dev this will be slow if there are multiple positions to hedge in a single block => multithreading?
 async function checkIfHedgeAvailable() {
-  timeNow = Date.now() / 1e3;
+  let timeNow = Date.now() / 1e3;
 
-  for (i = 0; i < Positions.length; i++) {
+  for (let i = 0; i < Positions.length; i++) {
     if (timeNow > Positions[i].nextHedgeTimeStamp) {
       try {
         await hedgePosition(i);
@@ -213,7 +215,7 @@ async function getMATICprice() {
     console.log("error - getMATICprice");
   }
 
-  wethPrice = ethers.BigNumber.from(price).toString() / 1e18;
+  let wethPrice = ethers.BigNumber.from(price).toString() / 1e18;
 
   return wethPrice;
 }
@@ -221,7 +223,7 @@ async function getMATICprice() {
 
 async function getUsers(numberOfPairs) {
   activeUsers = 0;
-  for (i = 0; i < numberOfPairs; i++) {
+  for (let i = 0; i < numberOfPairs; i++) {
     const pair = Pairs[i].address;
 
     try {
@@ -241,7 +243,7 @@ async function getPairs() {
   let numberOfPairs = await optionstorage.numOfPairs();
 
   if (Pairs.length < numberOfPairs) {
-    for (i = 0; i < numberOfPairs; i++) {
+    for (let i = 0; i < numberOfPairs; i++) {
       const _pair = Object.create(Pair);
 
       try {
@@ -265,12 +267,12 @@ async function getPairs() {
 
 async function savePositions(numberOfPairs) {
   // Getting all positions of all users
-  for (i = 0; i < numberOfPairs; i++) {
+  for (let i = 0; i < numberOfPairs; i++) {
 
     let pair = Pairs[i].address;
     let users = Pairs[i].users;
 
-    for (j = 0; j < users.length; j++) {
+    for (let j = 0; j < users.length; j++) {
 
       let user = users[j];
       let numberOfUserPositions;
@@ -293,7 +295,7 @@ async function savePositions(numberOfPairs) {
 
         Users.set(user, numberOfUserPositions);
 
-        for (ID = 0; ID < numberOfUserPositions; ID++) {
+        for (let ID = 0; ID < numberOfUserPositions; ID++) {
 
           let isClosed;
           try {
@@ -359,8 +361,8 @@ function getNumberOfUserPositions(user) {
 
 
 function nextHedgeTimeStamp(perDay, lastHedgeTimeStamp) {
-  interval = 86400 / perDay;
-  nextTimeStamp = lastHedgeTimeStamp + interval;
+  let interval = 86400 / perDay;
+  let nextTimeStamp = lastHedgeTimeStamp + interval;
 
   return nextTimeStamp;
 }
@@ -411,7 +413,7 @@ function sleep(ms) {
 
 // @dev this is a test function
 function printPositions() {
-  for (i = 0; i < Positions.length; i++) {
+  for (let i = 0; i < Positions.length; i++) {
     console.log(Positions[i]);
   }
 }

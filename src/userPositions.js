@@ -79,6 +79,8 @@ async function getUserPostions(userAddress, numberOfPairs) {
     position.userAddress = userAddress;
     position.ID = ID;
 
+
+
     position.amount = positionData[0];
     position.expiry = positionData[1];
     position.fees = positionData[2];
